@@ -1,0 +1,1 @@
+{"accuracy": 0.704, "metrics": [{"class": "Black Rot", "precision": 0.969, "recall": 0.724, "f1": 0.829, "support": 1087}, {"class": "Healthy", "precision": 0.841, "recall": 0.521, "f1": 0.643, "support": 933}, {"class": "Insect Hole", "precision": 0.472, "recall": 0.937, "f1": 0.628, "support": 639}], "confusion_matrix": [[787, 64, 236], [13, 486, 434], [12, 28, 599]]}
