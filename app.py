@@ -11,6 +11,8 @@ from tensorflow.keras.preprocessing import image
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 import threading
 import time
+import uuid
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -101,6 +103,9 @@ def extract_features(img_path):
 # ===============================
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # Collect results for one or more uploaded images
+    results = []
+    # keep legacy single-value variables for template compatibility
     prediction = confidence = description = image_path = None
     top_predictions = []
     warning = None
@@ -108,11 +113,16 @@ def index():
     treatment = None
 
     if request.method == "POST":
-        file = request.files.get("leaf")
+        files = request.files.getlist("leaf")
 
-        if file and file.filename != "":
+        for file in files:
+            if not file or file.filename == "":
+                continue
+
             os.makedirs("static", exist_ok=True)
-            image_path = os.path.join("static", file.filename)
+            filename = secure_filename(file.filename)
+            unique_name = f"{int(time.time())}_{uuid.uuid4().hex}_{filename}"
+            image_path = os.path.join("static", unique_name)
             file.save(image_path)
 
             feat = extract_features(image_path)
@@ -122,24 +132,34 @@ def index():
             best_conf = probs[best_idx] * 100
 
             if best_conf < CONFIDENCE_THRESHOLD:
-                # show the top predicted class even when confidence is low
-                prediction = CLASSES[best_idx]
-                confidence = round(best_conf, 2)
-                description = "Low confidence. Upload clearer image."
-                warning = "Low confidence"
-                # still provide treatment guidance for the top prediction
-                treatment = DISEASE_TREATMENTS.get(prediction)
+                pred = CLASSES[best_idx]
+                conf = round(best_conf, 2)
+                desc = "Low confidence. Upload clearer image."
+                warn = "Low confidence"
+                treat = DISEASE_TREATMENTS.get(pred)
             else:
-                prediction = CLASSES[best_idx]
-                confidence = round(best_conf, 2)
-                description = DISEASE_DESCRIPTIONS[prediction]
-                treatment = DISEASE_TREATMENTS.get(prediction)
+                pred = CLASSES[best_idx]
+                conf = round(best_conf, 2)
+                desc = DISEASE_DESCRIPTIONS[pred]
+                warn = None
+                treat = DISEASE_TREATMENTS.get(pred)
 
+            top_preds = []
             for i, cls in enumerate(CLASSES):
-                top_predictions.append({
+                top_preds.append({
                     "class": cls,
                     "prob": round(float(probs[i]) * 100, 2)
                 })
+
+            results.append({
+                "image_path": image_path,
+                "prediction": pred,
+                "confidence": conf,
+                "description": desc,
+                "treatment": treat,
+                "top_predictions": top_preds,
+                "warning": warn
+            })
 
     # Ensure evaluation is being computed in background if missing
     try:
@@ -165,7 +185,8 @@ def index():
         top_predictions=top_predictions,
         warning=warning,
         treatment=treatment,
-        eval_results=eval_results
+        eval_results=eval_results,
+        results=results
     )
 
 # ===============================

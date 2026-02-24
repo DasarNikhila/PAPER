@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>Cauliflower plant Disease Classification</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -88,37 +87,39 @@ canvas{
 <body>
 <div class="container">
 
-<h1>🌱 Leaf Disease Diagnosis System</h1>
+<h1>🌱 Leaf Disease Classification</h1>
 
 <form method="POST" enctype="multipart/form-data">
     <div class="upload">
-        <input type="file" name="leaf" required><br><br>
-        <button type="submit">Diagnose</button>
+        <input type="file" name="leaf" required multiple accept="image/*"><br><br>
+        <button type="submit">Classify</button>
     </div>
 </form>
+ 
+{% if results %}
+    {% for r in results %}
+    <div class="result">
+        <img src="{{ r.image_path }}">
 
-{% if prediction %}
-<div class="result">
-    <img src="{{ image_path }}">
+        <div>
+            <h2>{{ r.prediction }}</h2>
+            <p><b>Confidence:</b> {{ '%.2f' % r.confidence }}%</p>
+            <p>{{ r.description }}</p>
 
-    <div>
-        <h2>{{ prediction }}</h2>
-        <p><b>Confidence:</b> {{ confidence }}%</p>
-        <p>{{ description }}</p>
+            {% if r.treatment %}
+            <h3>Recommended Treatment</h3>
+            <p style="background:#fff8f0;padding:10px;border-radius:6px;border:1px solid #fde2c7;">{{ r.treatment }}</p>
+            {% endif %}
 
-        {% if treatment %}
-        <h3>Recommended Treatment</h3>
-        <p style="background:#fff8f0;padding:10px;border-radius:6px;border:1px solid #fde2c7;">{{ treatment }}</p>
-        {% endif %}
-
-        <h3>Top Predictions</h3>
-        <ul>
-        {% for p in top_predictions %}
-            <li>{{ p.class }} – {{ p.prob }}%</li>
-        {% endfor %}
-        </ul>
+            <h3>Top Predictions</h3>
+            <ul>
+            {% for p in r.top_predictions %}
+                <li>{{ p.class }} – {{ p.prob }}%</li>
+            {% endfor %}
+            </ul>
+        </div>
     </div>
-</div>
+    {% endfor %}
 {% endif %}
 
 <hr>
